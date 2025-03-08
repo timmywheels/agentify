@@ -14,42 +14,25 @@ A lightweight TypeScript framework for building, deploying, evaluating, and orch
 - **Type Safety**: Leverage TypeScript for safer agent development
 - **Loose Coupling**: Components work together but aren't tightly bound
 - **Declarative API**: Focus on what your agents should do, not how
+- **Intelligent Orchestration**: Automatic task decomposition and agent selection
 
-## Core Components
+## Core Primitives and Boundaries
 
-### Tasks
+Agentify uses a clear separation of concerns between its core primitives:
 
-Tasks are units of work with defined inputs and outputs:
+### Tools: Atomic Capabilities
 
-```typescript
-app.task("fetchData", {
-  handler: async (input, context) => {
-    const data = await fetchFromApi(input.url);
-    return { data };
-  },
-});
-```
+Tools are self-contained functions that perform specific, atomic operations without decision-making logic.
 
-### Agents
+**Characteristics**:
 
-Agents are entities that perform specific functions using tools:
+- Single responsibility
+- Stateless execution
+- Pure input/output transformation
+- No dependencies on other tools
+- No orchestration or decision-making
 
-```typescript
-app.agent("researchAgent", {
-  capabilities: ["search", "analyze"],
-  execute: async (request, reply) => {
-    const searchResults = await request.tools.webSearch({
-      query: request.body.topic,
-    });
-
-    reply.send({ results: searchResults });
-  },
-});
-```
-
-### Tools
-
-Tools are specific capabilities that agents can use:
+**Example**:
 
 ```typescript
 app.tool("webSearch", {
@@ -61,27 +44,165 @@ app.tool("webSearch", {
 });
 ```
 
-### Workflows
+### Agents: Intelligent Actors
 
-Workflows orchestrate tasks and agents to achieve complex goals:
+Agents are autonomous entities that use tools and reasoning to achieve goals. They make decisions, follow plans, and adapt to feedback.
+
+**Characteristics**:
+
+- Use multiple tools to accomplish tasks
+- Have defined capabilities
+- Make decisions about which tools to use
+- Can maintain conversation state
+- Handle errors and adapt to changing conditions
+
+**Example**:
+
+```typescript
+app.agent("researchAgent", {
+  capabilities: ["search", "analyze"],
+  execute: async (request, reply) => {
+    const searchResults = await request.tools.webSearch({
+      query: request.body.topic,
+    });
+
+    const analysis = analyzeResults(searchResults);
+
+    reply.send({ results: searchResults, analysis });
+  },
+});
+```
+
+### Tasks: Defined Units of Work
+
+Tasks are well-defined units of work with explicit inputs and outputs, serving as building blocks for larger workflows.
+
+**Characteristics**:
+
+- Clear input/output contract
+- Simple, focused responsibility
+- Reusable across workflows
+- Composable into larger operations
+- Stateless execution
+
+**Example**:
+
+```typescript
+app.task("fetchData", {
+  handler: async (input, context) => {
+    const data = await fetchFromApi(input.url);
+    return { data };
+  },
+});
+```
+
+### Workflows: Orchestrated Processes
+
+Workflows define the sequence, branching, and data flow between tasks and agents to achieve complex goals.
+
+**Characteristics**:
+
+- Define execution order
+- Map inputs between steps
+- Handle conditional branching
+- Manage error handling and retries
+- Track overall progress
+
+**Example**:
 
 ```typescript
 app
   .workflow("researchWorkflow")
   .task("search", {
     taskName: "fetchData",
-    inputMap: {
-      url: "searchUrl",
-    },
+    inputMap: { url: "searchUrl" },
   })
   .task("analyze", {
     taskName: "analyzeData",
-    inputMap: {
-      data: "steps.search.data",
-    },
+    inputMap: { data: "steps.search.data" },
   })
   .sequence(["search", "analyze"]);
 ```
+
+### Orchestrator: Intelligent Coordinator
+
+The orchestrator analyzes tasks, selects appropriate agents, and manages the execution flow.
+
+**Characteristics**:
+
+- Task decomposition and analysis
+- Agent selection based on capabilities
+- Evaluation of results against criteria
+- Retry management
+- Result aggregation and synthesis
+
+**Example**:
+
+```typescript
+// Define task declaratively
+const researchTask = {
+  name: "researchTopic",
+  description: "Research a topic thoroughly",
+  goal: "Gather comprehensive information on a topic",
+  requiredCapabilities: ["research", "analyze"],
+  input: { topic: "string" },
+};
+
+// Let the orchestrator handle execution
+const result = await app.run(researchTask, { topic: "Quantum Computing" });
+```
+
+### Plugins: Framework Extensions
+
+Plugins extend the framework with new system-level functionality, integrations, or providers.
+
+**Characteristics**:
+
+- Modify or extend core framework behavior
+- Add new integrations (LLMs, databases, etc.)
+- Configure global settings
+- Register new tools, agents, or hooks
+- Affect multiple parts of the system
+
+**Example**:
+
+```typescript
+// Register an LLM provider plugin
+app.register(require("agentify-openai"), {
+  apiKey: process.env.OPENAI_API_KEY,
+});
+```
+
+## LLM Integration
+
+LLMs can be integrated at multiple levels in the architecture:
+
+1. **As Tools**: Providing capabilities for text generation, summarization, etc.
+
+   ```typescript
+   app.tool("textGeneration", {
+     description: "Generate text based on a prompt",
+     use: async (input) => llmProvider.complete(input.prompt),
+   });
+   ```
+
+2. **Powering Agents**: Providing reasoning and decision-making for agents
+
+   ```typescript
+   app.agent("llmAgent", {
+     capabilities: ["reasoning", "writing"],
+     execute: async (request, reply) => {
+       // Use LLM to decide which tools to use and how
+       // ...
+     },
+   });
+   ```
+
+3. **In the Orchestrator**: For intelligent task decomposition and evaluation
+   ```typescript
+   // The orchestrator uses LLMs internally to analyze tasks,
+   // decompose them optimally, and evaluate results
+   ```
 
 ## Getting Started
 
@@ -94,7 +215,7 @@ npm install agentify
 ### Basic Usage
 
 ```typescript
-import { Agentify } from "agen-ts";
+import { Agentify } from "agentify";
 
 // Initialize the framework
 const app = Agentify({
@@ -126,33 +247,36 @@ app.ready().then(async () => {
 });
 ```
 
-### Advanced Example
+### Declarative Task Definition
+
+```typescript
+// Define a task declaratively
+const analyzeNews = app.defineTask({
+  name: "analyzeNews",
+  description: "Analyze recent news on a topic",
+  goal: "Provide insights on recent developments",
+  requiredCapabilities: ["research", "analyze"],
+  input: {
+    topic: "string",
+    timeframe: "string?", // Optional
+  },
+});
+
+// Execute the task
+const result = await analyzeNews({
+  topic: "AI safety",
+  timeframe: "last week",
+});
+```
+
+### Advanced Examples
 
 See the [examples directory](./src/examples) for more comprehensive examples:
 
 - **Simple Workflows**: Basic task sequencing and data passing
 - **Conditional Workflows**: Branching based on results
 - **Agentic Workflows**: Complex integration of agents and tools
-
-## Extending the Framework
-
-The plugin system allows easy extension of the framework:
-
-```typescript
-// Register a plugin
-app.register(require("agen-ts-openai-plugin"), {
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Use the plugin's components
-app.task("generateText", {
-  handler: async (input, context) => {
-    return await context.instance.tools.openai.complete({
-      prompt: input.prompt,
-    });
-  },
-});
-```
+- **Declarative Tasks**: Using the orchestrator for automatic execution
 
 ## Contributing
 
