@@ -1,0 +1,11 @@
+# Compiled output
+dist/
+build/
+
+# Configuration files
+jest.config.js
+*.config.js
+
+# Other common excludes
+node_modules/
+coverage/
