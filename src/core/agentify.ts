@@ -1,5 +1,13 @@
-interface PluginInstance {
+import { buildPluginSystem } from "./plugin";
+import { buildHookSystem } from "./hooks";
+import { buildTaskSystem } from "./task";
+import { buildAgentSystem } from "./agent";
+import { buildWorkflowSystem } from "./workflow";
+import { buildToolSystem } from "./tool";
+
+export interface PluginInstance {
   name: string;
+  init?: () => Promise<void>;
   [key: string]: any;
 }
 
@@ -7,16 +15,19 @@ interface Plugins {
   [key: string]: PluginInstance;
 }
 
-interface Agents {
+export interface Agentify {
   tasks: Record<string, any>;
   agents: Record<string, any>;
   workflows: Record<string, any>;
   plugins: Record<string, any>;
+  tools: Record<string, any>;
   hooks: Record<string, any>;
   options: any;
   register: (plugin: any, opts: any) => void;
   decorate: (name: string, value: any) => void;
   ready: () => Promise<void>;
+  close: () => Promise<void>;
+  workflow: (id: string) => any;
   [key: string]: any;
 }
 
@@ -31,17 +42,18 @@ interface Hooks {
   onEvaluationEnd: ((evaluation: any) => Promise<void>)[];
 }
 
-export function Agents(options = {}) {
-  const instance: Agents = {
+export function Agentify(options = {}): Agentify {
+  const instance: Agentify = {
     tasks: {},
     agents: {},
     workflows: {},
     plugins: {} as Plugins,
+    tools: {},
     hooks: {} as Hooks,
     options,
 
     // Core methods
-    register: (plugin: PluginInstance, opts: any) => {},
+    register: (plugin: any, opts: any) => {},
     decorate: (name: string, value: any) => {},
     ready: async () => {},
 
@@ -49,13 +61,23 @@ export function Agents(options = {}) {
     task: (name: string, options: any) => {},
     agent: (name: string, options: any) => {},
     workflow: (name: string) => {},
+    tool: (name: string, options: any) => {},
 
     // Hook system
     addHook: (name: string, fn: any) => {},
+    executeHook: async (name: string, ...args: any[]) => {},
 
     // Close/cleanup
     close: async () => {},
   };
+
+  // Initialize all systems
+  buildPluginSystem(instance);
+  buildHookSystem(instance);
+  buildTaskSystem(instance);
+  buildAgentSystem(instance);
+  buildWorkflowSystem(instance);
+  buildToolSystem(instance);
 
   return instance;
 }

@@ -1,4 +1,4 @@
-import { Agents } from "../core/agen";
+import { Agentify } from "./agentify";
 
 // Define task option types
 interface TaskSchema {
@@ -7,14 +7,14 @@ interface TaskSchema {
 }
 
 interface TaskOptions {
-  schema?: TaskSchema;
+  schema?: any;
   handler: (input: any, context: any) => Promise<any> | any;
   description?: string;
 }
 
 interface TaskInstance {
   name: string;
-  schema?: TaskSchema;
+  schema?: any;
   handler: (input: any, context: any) => Promise<any> | any;
   description?: string;
   execute: (input: any, context?: any) => Promise<any>;
@@ -25,12 +25,11 @@ interface Tasks {
   [key: string]: TaskInstance;
 }
 
-export function buildTaskSystem(instance: ReturnType<typeof Agen>) {
+export function buildTaskSystem(instance: ReturnType<typeof Agentify>) {
   // Task storage
-  instance.tasks = {} as Tasks;
+  instance.tasks = {} as Record<string, TaskInstance>;
 
-  //
-  //  Task registration
+  // Task registration
   instance.task = function (name: string, options: TaskOptions) {
     if (instance.tasks[name]) {
       throw new Error(`Task ${name} already registered`);
@@ -42,7 +41,7 @@ export function buildTaskSystem(instance: ReturnType<typeof Agen>) {
       schema: options.schema,
       handler: options.handler,
       description: options.description,
-      execute: (input: any, context?: any) => {
+      execute: async (input: any, context: any = {}) => {
         return executeTask(name, input, context || {});
       },
     };
@@ -87,24 +86,8 @@ export function buildTaskSystem(instance: ReturnType<typeof Agen>) {
       // Run pre-execution hooks
       await instance.executeHook("onTaskStart", task, input, execContext);
 
-      // Validate input schema if present
-      if (task.schema?.input) {
-        const valid = instance.validate(input, task.schema.input);
-        if (!valid) {
-          throw new Error(`Input validation failed for task ${name}`);
-        }
-      }
-
       // Execute task handler
-      let result = await task.handler(input, execContext);
-
-      // Validate output schema if present
-      if (task.schema?.output) {
-        const valid = instance.validate(result, task.schema.output);
-        if (!valid) {
-          throw new Error(`Output validation failed for task ${name}`);
-        }
-      }
+      const result = await task.handler(input, execContext);
 
       // Run post-execution hooks
       await instance.executeHook("onTaskEnd", task, input, result, execContext);

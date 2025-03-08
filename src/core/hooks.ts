@@ -1,10 +1,8 @@
 /**
- * Hooks are a way to extend the core functionality of the agent.
- * They are a way to "hook" into the agent's lifecycle and add custom behavior.
-
+ * Hooks extend the core functionality of agents, tasks, workflows, and evaluations.
  */
 
-import { Agents } from "./agen";
+import { Agentify } from "./agentify";
 
 interface Hooks {
   onTaskStart: ((task: any) => Promise<void>)[];
@@ -17,7 +15,7 @@ interface Hooks {
   onEvaluationEnd: ((evaluation: any) => Promise<void>)[];
 }
 
-export function buildHookSystem(instance: ReturnType<typeof Agen>) {
+export function buildHookSystem(instance: ReturnType<typeof Agentify>) {
   // Initialize hook storage
   instance.hooks = {
     onTaskStart: [],
@@ -25,22 +23,28 @@ export function buildHookSystem(instance: ReturnType<typeof Agen>) {
     onAgentExecute: [],
     onWorkflowStart: [],
     onWorkflowEnd: [],
-    onEvaluationStart: [],
-    onEvaluationEnd: [],
+    onToolUse: [],
+    onToolUseComplete: [],
+    onToolUseError: [],
+    onReady: [],
+    onClose: [],
   };
 
   // Add hook method
-  instance.addHook = function (
-    name: keyof Hooks,
-    fn: (...args: any[]) => Promise<void>
-  ) {
-    // Register hook function
+  instance.addHook = function (name: string, fn: Function) {
+    if (!instance.hooks[name]) {
+      instance.hooks[name] = [];
+    }
     instance.hooks[name].push(fn);
+    return instance;
   };
 
   // Execute hooks
-  instance.executeHook = async function (name: keyof Hooks, ...args: any[]) {
-    // Run all hooks of a specific type
+  instance.executeHook = async function (name: string, ...args: any[]) {
+    if (!instance.hooks[name]) {
+      return;
+    }
+
     for (const hook of instance.hooks[name]) {
       await hook(...args);
     }

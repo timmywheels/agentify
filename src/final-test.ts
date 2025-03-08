@@ -1,15 +1,5 @@
 import { Agentify } from "./core/agentify";
 
-declare module "./core/agentify" {
-  interface AgentifyInstance {
-    tools: {
-      simpleEcho: {
-        use: (input: any) => Promise<any>;
-      };
-    };
-  }
-}
-
 async function main() {
   // Initialize the framework
   const app = Agentify({
