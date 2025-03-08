@@ -1,10 +1,10 @@
-# agen-ts
+# `agentify`
 
-A lightweight TypeScript framework for building, deploying, evaluating, and orchestrating agentic workflows.
+A lightweight TypeScript framework for building, deploying, evaluating, and orchestrating agentic workflows, inspired by [Fastify](https://fastify.dev/)
 
 ## Overview
 
-`agen-ts` is designed to simplify the creation and orchestration of agent-based systems. It provides a declarative, composable API inspired by Fastify, making it easy to build complex agentic workflows with minimal boilerplate.
+`agentify` is designed to simplify the creation and orchestration of agent-based AI systems. It provides a declarative, composable API inspired by [Fastify](https://fastify.dev/), making it easy to build complex agentic workflows with minimal boilerplate.
 
 ## Key Features
 
@@ -88,7 +88,7 @@ app
 ### Installation
 
 ```bash
-npm install agen-ts
+npm install agentify
 ```
 
 ### Basic Usage

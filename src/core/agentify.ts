@@ -4,6 +4,7 @@ import { buildTaskSystem } from "./task";
 import { buildAgentSystem } from "./agent";
 import { buildWorkflowSystem } from "./workflow";
 import { buildToolSystem } from "./tool";
+import { buildOrchestratorSystem, TaskDefinition } from "./orchestrator";
 
 export interface PluginInstance {
   name: string;
@@ -22,12 +23,15 @@ export interface Agentify {
   plugins: Record<string, any>;
   tools: Record<string, any>;
   hooks: Record<string, any>;
+  orchestrator: any;
   options: any;
   register: (plugin: any, opts: any) => void;
   decorate: (name: string, value: any) => void;
   ready: () => Promise<void>;
   close: () => Promise<void>;
   workflow: (id: string) => any;
+  run: (taskDefinition: TaskDefinition, input?: any) => Promise<any>;
+  defineTask: (taskDefinition: TaskDefinition) => (input?: any) => Promise<any>;
   [key: string]: any;
 }
 
@@ -50,6 +54,7 @@ export function Agentify(options = {}): Agentify {
     plugins: {} as Plugins,
     tools: {},
     hooks: {} as Hooks,
+    orchestrator: null,
     options,
 
     // Core methods
@@ -62,6 +67,12 @@ export function Agentify(options = {}): Agentify {
     agent: (name: string, options: any) => {},
     workflow: (name: string) => {},
     tool: (name: string, options: any) => {},
+
+    // Orchestrator methods
+    run: async (taskDefinition: TaskDefinition, input: any = {}) => {},
+    defineTask:
+      (taskDefinition: TaskDefinition) =>
+      async (input: any = {}) => {},
 
     // Hook system
     addHook: (name: string, fn: any) => {},
@@ -78,6 +89,7 @@ export function Agentify(options = {}): Agentify {
   buildAgentSystem(instance);
   buildWorkflowSystem(instance);
   buildToolSystem(instance);
+  buildOrchestratorSystem(instance);
 
   return instance;
 }

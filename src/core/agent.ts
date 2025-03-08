@@ -143,13 +143,12 @@ export function buildAgentSystem(instance: ReturnType<typeof Agentify>) {
     context: any
   ): AgentRequest {
     return {
-      task,
-      body: input,
-      params: context.params || {},
-      tools: context.tools || {},
-      log: context.log || instance.log,
-      context: { ...context },
-      instance,
+      task: task || { name: "unknown" },
+      body: input || {},
+      params: context?.params || {},
+      tools: instance.tools || {}, // Ensure tools are always included
+      log: context?.log || console,
+      instance: instance, // Give access to the full instance
     };
   };
 
