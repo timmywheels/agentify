@@ -59,9 +59,16 @@ export default function (agentify: AgentifyInstance) {
     return agentify._agents.get(name);
   };
 
-  // add methods to the agentify instance
-  agentify.agents.create = create;
-  agentify.agents.list = list;
-  agentify.agents.get = get;
+  agentify.decorate("agents", {
+    create,
+    list,
+    get,
+  });
+
+  //   // add methods to the agentify instance
+  //   agentify.agents.create = create;
+  //   agentify.agents.list = list;
+  //   agentify.agents.get = get;
+
   return agentify;
 }

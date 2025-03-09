@@ -56,9 +56,11 @@ export default function (agentify: AgentifyInstance) {
     return agentify._tasks.get(name);
   };
 
-  agentify.tasks.create = create;
-  agentify.tasks.list = list;
-  agentify.tasks.get = get;
+  agentify.decorate("tasks", {
+    create,
+    list,
+    get,
+  });
 
   return agentify;
 }
