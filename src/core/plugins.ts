@@ -13,6 +13,10 @@ export type Plugin = (
  */
 export interface RegisterOptions {
   /**
+   * The name of the plugin
+   */
+
+  /**
    * Whether to skip the plugin if it's already registered
    */
   skip?: boolean;
@@ -30,12 +34,12 @@ export interface RegisterOptions {
  */
 export default function buildPluginSystem(agentify: AgentifyInstance) {
   // Keep track of registered plugins
-  const registeredPlugins = new Set<Plugin>();
+  const plugins = new Map<string, Plugin>();
 
   // Implement the register method
   agentify.register = function (plugin: Plugin, opts: RegisterOptions = {}) {
     // Skip if already registered and skip option is true
-    if (opts.skip && registeredPlugins.has(plugin)) {
+    if (opts.skip && plugins.has(plugin.name)) {
       return agentify;
     }
 
@@ -45,7 +49,7 @@ export default function buildPluginSystem(agentify: AgentifyInstance) {
       plugin(agentify, opts);
 
       // Add to registered plugins set
-      registeredPlugins.add(plugin);
+      plugins.set(plugin.name, plugin);
 
       // Return the instance for chaining
       return agentify;
@@ -56,15 +60,14 @@ export default function buildPluginSystem(agentify: AgentifyInstance) {
   };
 
   agentify.listPlugins = function () {
-    // print all registered plugins in a readable, tree-like format
     console.log("Registered plugins:");
-    for (const plugin of registeredPlugins) {
+    for (const plugin of plugins.values()) {
       console.log(`- ${plugin.name}`);
     }
   };
 
   agentify.hasPlugin = function (plugin: Plugin) {
-    return registeredPlugins.has(plugin);
+    return plugins.has(plugin.name);
   };
 
   agentify.ready = async function () {

@@ -25,8 +25,9 @@ declare module "../core/agentify" {
     _agents: Map<Agent["name"], Agent>;
     agents: {
       create: (agent: Agent, options: AgentOptions) => void;
-      list: () => void;
+      list: () => Agent[];
       get: (name: string) => Agent | undefined;
+      print: () => void;
     };
   }
 }
@@ -48,27 +49,31 @@ export default function (agentify: AgentifyInstance) {
     agentify._agents.set(agent.name, obj);
   };
 
-  const list = (): void => {
-    console.log("Agents:");
-    for (const agent of agentify._agents.values()) {
-      console.log(`- ${agent.name}`);
-    }
+  const list = (): Agent[] => {
+    return Array.from(agentify._agents.values());
   };
 
   const get = (name: string): Agent | undefined => {
     return agentify._agents.get(name);
   };
 
+  const print = (): void => {
+    if (agentify._agents.size === 0) {
+      console.log("No agents registered");
+    } else {
+      console.log("Agents:");
+      for (const agent of agentify._agents.values()) {
+        console.log(`- ${agent.name}`);
+      }
+    }
+  };
+
   agentify.decorate("agents", {
     create,
     list,
     get,
+    print,
   });
-
-  //   // add methods to the agentify instance
-  //   agentify.agents.create = create;
-  //   agentify.agents.list = list;
-  //   agentify.agents.get = get;
 
   return agentify;
 }

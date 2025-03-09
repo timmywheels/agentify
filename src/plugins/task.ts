@@ -23,7 +23,8 @@ declare module "../core/agentify" {
     tasks: {
       create: (task: Task, options: TaskOptions) => void;
       get: (name: string) => Task | undefined;
-      list: () => void;
+      list: () => Task[];
+      print: () => void;
     };
   }
 }
@@ -45,21 +46,30 @@ export default function (agentify: AgentifyInstance) {
     agentify._tasks.set(task.name, obj);
   };
 
-  const list = () => {
-    console.log("Tasks:");
-    for (const task of agentify._tasks.values()) {
-      console.log(`- ${task.name}`);
-    }
+  const list = (): Task[] => {
+    return Array.from(agentify._tasks.values());
   };
 
   const get = (name: string): Task | undefined => {
     return agentify._tasks.get(name);
   };
 
+  const print = (): void => {
+    if (agentify._tasks.size === 0) {
+      console.log("No tasks registered");
+    } else {
+      console.log("Tasks:");
+      for (const task of agentify._tasks.values()) {
+        console.log(`- ${task.name}`);
+      }
+    }
+  };
+
   agentify.decorate("tasks", {
     create,
     list,
     get,
+    print,
   });
 
   return agentify;

@@ -1,7 +1,7 @@
-import { Plugin, RegisterOptions } from "./plugin";
-import buildHookSystem from "./hooks";
-import buildPluginSystem from "./plugin";
-import { AgentifyHooks } from "./hooks";
+import { Plugin, RegisterOptions } from "./plugins";
+import buildHookSystem, { AgentifyHooks } from "./hooks";
+import buildPluginSystem from "./plugins";
+import buildProviderSystem from "./providers";
 
 export interface AgentifyInstance {
   options: any;
@@ -33,8 +33,10 @@ export default function Agentify(options = {}) {
 
   instance.decorate = decorate;
 
+  // initialize coresystems
   buildPluginSystem(instance);
   buildHookSystem(instance);
+  buildProviderSystem(instance);
 
   return instance;
 }

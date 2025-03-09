@@ -24,8 +24,9 @@ declare module "../core/agentify" {
     _tools: Map<Tool["name"], Tool>;
     tools: {
       create: (tool: Tool, options: ToolOptions) => void;
-      list: () => void;
+      list: () => Tool[];
       get: (name: string) => Tool | undefined;
+      print: () => void;
     };
   }
 }
@@ -48,21 +49,30 @@ export default function (agentify: AgentifyInstance) {
     agentify._tools.set(tool.name, obj);
   };
 
-  const list = () => {
-    console.log("Tools:");
-    for (const tool of agentify._tools.values()) {
-      console.log(`- ${tool.name}`);
-    }
+  const list = (): Tool[] => {
+    return Array.from(agentify._tools.values());
   };
 
   const get = (name: string): Tool | undefined => {
     return agentify._tools.get(name);
   };
 
+  const print = (): void => {
+    if (agentify._tools.size === 0) {
+      console.log("No tools registered");
+    } else {
+      console.log("Tools:");
+      for (const tool of agentify._tools.values()) {
+        console.log(`- ${tool.name}`);
+      }
+    }
+  };
+
   agentify.decorate("tools", {
     create,
     list,
     get,
+    print,
   });
 
   return agentify;
