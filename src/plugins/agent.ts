@@ -1,8 +1,13 @@
 import { AgentifyInstance } from "../core/agentify";
+import { Tool } from "./tool";
 
 declare module "../core/hooks" {
   interface AgentifyHooks {
+    onAgentCreate: HookFunction[];
     onAgentReady: HookFunction[];
+    onAgentStart: HookFunction[];
+    onAgentEnd: HookFunction[];
+    onAgentError: HookFunction[];
   }
 }
 

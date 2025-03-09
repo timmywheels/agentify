@@ -10,6 +10,15 @@ export interface Tool {
   execute: (input: any) => Promise<any>;
 }
 
+declare module "../core/hooks" {
+  interface AgentifyHooks {
+    onToolCreate: HookFunction[];
+    onToolStart: HookFunction[];
+    onToolEnd: HookFunction[];
+    onToolError: HookFunction[];
+  }
+}
+
 declare module "../core/agentify" {
   interface AgentifyInstance {
     _tools: Map<Tool["name"], Tool>;
