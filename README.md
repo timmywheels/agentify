@@ -285,3 +285,96 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the ISC License - see the LICENSE file for details.
+
+## Plugin System
+
+Agentify features a powerful plugin system that allows you to extend its functionality in a modular way.
+
+### Creating a Plugin
+
+A plugin is simply a function that receives an `Agentify` instance and optional options:
+
+```typescript
+import { Agentify } from "./src/core/agentify";
+
+// Define a simple plugin
+export default function myPlugin(agentify: Agentify, options = {}) {
+  // Add custom functionality
+  const myFunction = () => console.log("My custom plugin!");
+
+  // Decorate the instance with your functionality
+  agentify.decorate("myPlugin", myFunction);
+
+  // You can also add lifecycle hooks
+  agentify.addHook("onReady", async () => {
+    console.log("My plugin is ready!");
+  });
+}
+```
+
+### Using a Plugin
+
+To use a plugin, simply register it with your Agentify instance:
+
+```typescript
+import Agentify from "./src/core/agentify";
+import myPlugin from "./my-plugin";
+
+async function main() {
+  // Create a new Agentify instance
+  const agentify = Agentify();
+
+  // Register your plugin
+  agentify.register(myPlugin);
+
+  // Start the application
+  await agentify.start();
+
+  // Use your plugin's functionality
+  agentify.myPlugin();
+
+  // Properly shut down
+  await agentify.close();
+}
+
+main().catch(console.error);
+```
+
+### Plugin Options and Dependencies
+
+You can pass options to your plugins and specify dependencies:
+
+```typescript
+agentify.register(myPlugin, {
+  name: "myPlugin",
+  // Custom options for your plugin
+  someOption: "value",
+  // Specify dependencies
+  dependencies: ["anotherPlugin"],
+});
+```
+
+### Lifecycle Hooks
+
+Agentify provides lifecycle hooks that plugins can use:
+
+- `onReady`: Called when the application is ready to start
+- `onClose`: Called when the application is shutting down
+
+```typescript
+agentify.addHook("onReady", async () => {
+  console.log("Ready to go!");
+});
+
+agentify.addHook("onClose", async () => {
+  console.log("Shutting down...");
+});
+```
+
+## Examples
+
+Check out the `examples` directory for more examples of how to use Agentify and its plugin system.
+
+## License
+
+MIT

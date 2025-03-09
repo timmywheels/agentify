@@ -1,95 +1,38 @@
-import { buildPluginSystem } from "./plugin";
-import { buildHookSystem } from "./hooks";
-import { buildTaskSystem } from "./task";
-import { buildAgentSystem } from "./agent";
-import { buildWorkflowSystem } from "./workflow";
-import { buildToolSystem } from "./tool";
-import { buildOrchestratorSystem, TaskDefinition } from "./orchestrator";
+import { Plugin, RegisterOptions } from "./plugin";
+import buildHookSystem from "./hooks";
+import buildPluginSystem from "./plugin";
 
-export interface PluginInstance {
-  name: string;
-  init?: () => Promise<void>;
-  [key: string]: any;
-}
-
-interface Plugins {
-  [key: string]: PluginInstance;
-}
-
-export interface Agentify {
-  tasks: Record<string, any>;
-  agents: Record<string, any>;
-  workflows: Record<string, any>;
-  plugins: Record<string, any>;
-  tools: Record<string, any>;
-  hooks: Record<string, any>;
-  orchestrator: any;
+export interface AgentifyInstance {
   options: any;
-  register: (plugin: any, opts: any) => void;
   decorate: (name: string, value: any) => void;
-  ready: () => Promise<void>;
-  close: () => Promise<void>;
-  workflow: (id: string) => any;
-  run: (taskDefinition: TaskDefinition, input?: any) => Promise<any>;
-  defineTask: (taskDefinition: TaskDefinition) => (input?: any) => Promise<any>;
+  register: (plugin: Plugin, opts: RegisterOptions) => AgentifyInstance;
   [key: string]: any;
 }
 
-interface Hooks {
-  onTaskStart: ((task: any) => Promise<void>)[];
-  onTaskEnd: ((task: any) => Promise<void>)[];
-  onAgentStart: ((agent: any) => Promise<void>)[];
-  onAgentEnd: ((agent: any) => Promise<void>)[];
-  onWorkflowStart: ((workflow: any) => Promise<void>)[];
-  onWorkflowEnd: ((workflow: any) => Promise<void>)[];
-  onEvaluationStart: ((evaluation: any) => Promise<void>)[];
-  onEvaluationEnd: ((evaluation: any) => Promise<void>)[];
-}
-
-export function Agentify(options = {}): Agentify {
-  const instance: Agentify = {
-    tasks: {},
-    agents: {},
-    workflows: {},
-    plugins: {} as Plugins,
-    tools: {},
-    hooks: {} as Hooks,
-    orchestrator: null,
+export default function Agentify(options = {}) {
+  // Use any type to allow string indexing
+  const instance: any = {
     options,
-
-    // Core methods
-    register: (plugin: any, opts: any) => {},
     decorate: (name: string, value: any) => {},
-    ready: async () => {},
-
-    // Primitive registration
-    task: (name: string, options: any) => {},
-    agent: (name: string, options: any) => {},
-    workflow: (name: string) => {},
-    tool: (name: string, options: any) => {},
-
-    // Orchestrator methods
-    run: async (taskDefinition: TaskDefinition, input: any = {}) => {},
-    defineTask:
-      (taskDefinition: TaskDefinition) =>
-      async (input: any = {}) => {},
-
-    // Hook system
-    addHook: (name: string, fn: any) => {},
-    executeHook: async (name: string, ...args: any[]) => {},
-
-    // Close/cleanup
-    close: async () => {},
+    register: (plugin: Plugin, opts: RegisterOptions = {}) => {
+      // This is just a placeholder - the actual implementation will be provided by buildPluginSystem
+      return instance;
+    },
   };
 
-  // Initialize all systems
+  const decorate = (name: string, value: any) => {
+    if (instance[name]) {
+      throw new Error(`Decorator ${name} already exists`);
+    }
+    instance[name] = value;
+  };
+
+  instance.decorate = decorate;
+
   buildPluginSystem(instance);
   buildHookSystem(instance);
-  buildTaskSystem(instance);
-  buildAgentSystem(instance);
-  buildWorkflowSystem(instance);
-  buildToolSystem(instance);
-  buildOrchestratorSystem(instance);
 
   return instance;
 }
+
+export { Agentify };
