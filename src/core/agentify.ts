@@ -1,11 +1,15 @@
 import { Plugin, RegisterOptions } from "./plugin";
 import buildHookSystem from "./hooks";
 import buildPluginSystem from "./plugin";
+import { AgentifyHooks } from "./hooks";
 
 export interface AgentifyInstance {
   options: any;
   decorate: (name: string, value: any) => void;
-  register: (plugin: Plugin, opts: RegisterOptions) => AgentifyInstance;
+  register: (plugin: Plugin, opts?: RegisterOptions) => AgentifyInstance;
+  hooks: AgentifyHooks;
+  addHook: (name: string, fn: Function) => AgentifyInstance;
+  executeHook: (name: string, ...args: any[]) => Promise<void>;
   [key: string]: any;
 }
 

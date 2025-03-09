@@ -1,6 +1,10 @@
 import Agentify, { AgentifyInstance } from "../core/agentify";
+import agentPlugin from "../plugins/agent";
+import taskPlugin from "../plugins/task";
 
 async function main() {
+  const agentify = Agentify();
+
   const myOnReadyPlugin = (agentify: AgentifyInstance) => {
     agentify.addHook("onReady", async () => {
       console.log("Agentify is ready!");
@@ -13,7 +17,8 @@ async function main() {
     });
   };
 
-  const agentify = Agentify();
+  agentify.register(agentPlugin);
+  agentify.register(taskPlugin);
 
   agentify.register(myOnReadyPlugin);
   agentify.register(myOnStartPlugin);
