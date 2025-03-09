@@ -59,9 +59,11 @@ export default function (agentify: AgentifyInstance) {
     return agentify._tools.get(name);
   };
 
-  agentify.tools.create = create;
-  agentify.tools.list = list;
-  agentify.tools.get = get;
+  agentify.decorate("tools", {
+    create,
+    list,
+    get,
+  });
 
   return agentify;
 }

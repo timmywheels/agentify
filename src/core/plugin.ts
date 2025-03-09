@@ -69,7 +69,6 @@ export default function buildPluginSystem(agentify: AgentifyInstance) {
 
   agentify.ready = async function () {
     // simulate a delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
     await agentify.executeHook("onReady");
   };
 
