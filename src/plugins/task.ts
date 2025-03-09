@@ -15,6 +15,10 @@ export interface Task {
   goal: string;
   context: Record<string, unknown>;
   options: TaskOptions;
+  status: "pending" | "running" | "completed" | "failed";
+  result: Record<string, unknown>;
+  error: Record<string, unknown>;
+  execute?: (opts: Record<string, unknown>) => Promise<void>;
 }
 
 declare module "../core/agentify" {
@@ -32,6 +36,11 @@ declare module "../core/agentify" {
 export default function (agentify: AgentifyInstance) {
   agentify.decorate("_tasks", new Map());
 
+  const defaultExecute = async (opts: Record<string, unknown>) => {
+    const tools = agentify.tools.list();
+    agentify.providers;
+  };
+
   const create = (task: Task, options: TaskOptions) => {
     if (agentify._tasks.has(task.name)) {
       throw new Error(`Task ${task.name} already exists`);
@@ -40,6 +49,7 @@ export default function (agentify: AgentifyInstance) {
     const obj: Task = {
       name: task.name,
       goal: task.goal,
+      execute: task.execute || defaultExecute,
       context: task.context,
       ...options,
     };
@@ -55,7 +65,7 @@ export default function (agentify: AgentifyInstance) {
   };
 
   const print = (): void => {
-    if (agentify._tasks.size === 0) {
+    if (!agentify._tasks.size) {
       console.log("No tasks registered");
     } else {
       console.log("Tasks:");

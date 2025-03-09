@@ -1,11 +1,14 @@
 import { AgentifyInstance } from "../core/agentify";
 import { z } from "zod";
-export type ToolOptions = any;
+export type ToolOptions = {
+  type: "function";
+  strict?: boolean;
+};
 
 export interface Tool {
   name: string;
   description: string;
-  options: ToolOptions;
+  options?: ToolOptions;
   schema: z.ZodSchema;
   execute: (input: any) => Promise<any>;
 }
@@ -58,7 +61,7 @@ export default function (agentify: AgentifyInstance) {
   };
 
   const print = (): void => {
-    if (agentify._tools.size === 0) {
+    if (!agentify._tools.size) {
       console.log("No tools registered");
     } else {
       console.log("Tools:");

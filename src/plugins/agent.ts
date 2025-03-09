@@ -17,7 +17,7 @@ export interface Agent {
   name: string;
   description: string;
   tools?: Tool[];
-  options: AgentOptions;
+  options?: AgentOptions;
 }
 
 declare module "../core/agentify" {
@@ -58,7 +58,7 @@ export default function (agentify: AgentifyInstance) {
   };
 
   const print = (): void => {
-    if (agentify._agents.size === 0) {
+    if (!agentify._agents.size) {
       console.log("No agents registered");
     } else {
       console.log("Agents:");

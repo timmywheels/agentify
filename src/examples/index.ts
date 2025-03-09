@@ -1,7 +1,13 @@
 import Agentify, { AgentifyInstance } from "../core/agentify";
 import agentPlugin, { Agent } from "../plugins/agent";
 import taskPlugin from "../plugins/task";
-import toolPlugin from "../plugins/tool";
+import toolPlugin, { Tool } from "../plugins/tool";
+import openaiPlugin from "../plugins/providers/openai";
+import anthropicPlugin from "../plugins/providers/anthropic";
+import dotenv from "dotenv";
+import z from "zod";
+
+dotenv.config();
 
 async function main() {
   const agentify = Agentify();
@@ -18,10 +24,21 @@ async function main() {
     });
   };
 
+  const myTool: Tool = {
+    name: "myTool",
+    description: "My Tool Description",
+    schema: z.object({
+      name: z.string(),
+    }),
+    execute: async (input: string) => {
+      return "Hello, world!";
+    },
+  };
+
   const agent: Agent = {
-    name: "My Agent",
-    description: "My Agent Description",
-    tools: [],
+    name: "My Greeting Agent",
+    description: "My Greeting Agent Description",
+    tools: [myTool],
     options: {},
   };
 
@@ -34,11 +51,18 @@ async function main() {
   agentify.register(myOnReadyPlugin);
   agentify.register(myOnStartPlugin);
 
+  agentify.register(openaiPlugin, {
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
+  agentify.register(anthropicPlugin, {
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+
   agentify.listPlugins();
   agentify.tools.print();
   agentify.tasks.print();
   agentify.agents.print();
-  agentify.providers.print();
 
   await agentify.ready();
   await agentify.start();

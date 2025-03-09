@@ -60,9 +60,13 @@ export default function buildPluginSystem(agentify: AgentifyInstance) {
   };
 
   agentify.listPlugins = function () {
-    console.log("Registered plugins:");
-    for (const plugin of plugins.values()) {
-      console.log(`- ${plugin.name}`);
+    if (!plugins.size) {
+      console.log("No plugins registered");
+    } else {
+      console.log("Registered plugins:");
+      for (const plugin of plugins.values()) {
+        console.log(`- ${plugin.name}`);
+      }
     }
   };
 
