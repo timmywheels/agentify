@@ -1,3 +1,4 @@
+import { JSONSchema7 } from "json-schema";
 import { AgentifyInstance } from "../core/agentify";
 import { z } from "zod";
 export type ToolOptions = {
@@ -8,9 +9,9 @@ export type ToolOptions = {
 export interface Tool {
   name: string;
   description: string;
+  parameters: z.ZodSchema;
   options?: ToolOptions;
-  schema: z.ZodSchema;
-  execute: (input: any) => Promise<any>;
+  execute: (args: any) => Promise<any>;
 }
 
 declare module "../core/hooks" {
@@ -45,7 +46,7 @@ export default function (agentify: AgentifyInstance) {
     const obj: Tool = {
       name: tool.name,
       description: tool.description,
-      schema: tool.schema,
+      parameters: tool.parameters,
       execute: tool.execute,
       options,
     };

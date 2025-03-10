@@ -13,11 +13,11 @@ export type TaskOptions = any;
 export interface Task {
   name: string;
   goal: string;
-  context: Record<string, unknown>;
-  options: TaskOptions;
-  status: "pending" | "running" | "completed" | "failed";
-  result: Record<string, unknown>;
-  error: Record<string, unknown>;
+  context?: Record<string, unknown>;
+  options?: TaskOptions;
+  status?: "pending" | "running" | "completed" | "failed";
+  result?: Record<string, unknown>;
+  error?: Record<string, unknown>;
   execute?: (opts: Record<string, unknown>) => Promise<void>;
 }
 

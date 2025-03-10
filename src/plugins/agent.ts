@@ -2,6 +2,12 @@ import z from "zod";
 import { AgentifyInstance } from "../core/agentify";
 import { Tool } from "./tool";
 import { zodResponseFormat } from "openai/helpers/zod";
+import { Task } from "./task";
+import { openai } from "@ai-sdk/openai";
+import { LanguageModelV1 } from "ai";
+import zodToJsonSchema from "zod-to-json-schema";
+import { jsonSchemaToZod } from "json-schema-to-zod";
+import { JSONSchema7 } from "json-schema";
 
 declare module "../core/hooks" {
   interface AgentifyHooks {
@@ -22,8 +28,8 @@ export interface Agent {
   description: string;
   tools?: Tool[];
   options?: AgentOptions;
-  model?: string;
-  execute?: (context: AgentContext) => Promise<any>;
+  model?: LanguageModelV1;
+  do?: (task: Task, context?: AgentContext) => Promise<any>;
 }
 
 declare module "../core/agentify" {
@@ -41,62 +47,83 @@ declare module "../core/agentify" {
 export default function (agentify: AgentifyInstance) {
   agentify.decorate("_agents", new Map());
 
-  const defaultExecute = (context: AgentContext) => {};
-
   const create = (agent: Agent, options: AgentOptions) => {
-    if (agentify._agents.has(agent.name)) {
+    if (agentify._agents.get(agent.name)) {
       throw new Error(`Agent ${agent.name} already exists`);
     }
 
-    const defaultExecute = async (context: AgentContext) => {
+    console.log("agent___:", agent);
+
+    const doTask = async (task: Task, context: AgentContext = {}) => {
       const _agent = agentify.agents.get(agent.name);
 
       if (!_agent) {
         throw new Error(`Agent ${agent.name} not found`);
       }
 
-      if (!_agent.execute) {
-        throw new Error(`Agent ${agent.name} has no execute function`);
-      }
-
       const tools = _agent.tools ?? [];
 
-      const chat = await agentify.openai.chat.completions.create({
-        model: _agent.model ?? "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: _agent.description,
-          },
+      const model = _agent.model ?? openai("gpt-4o-mini");
+
+      const chat = await model.doGenerate({
+        inputFormat: "prompt",
+        mode: {
+          type: "regular",
+          tools: tools.map((tool) => {
+            return {
+              type: "function",
+              name: tool.name,
+              description: tool.description,
+              parameters: zodToJsonSchema(tool.parameters) as JSONSchema7,
+            };
+          }),
+        },
+        prompt: [
           {
             role: "user",
-            content: context.input,
+            content: [
+              {
+                type: "text",
+                text:
+                  typeof task.goal === "string"
+                    ? task.goal
+                    : JSON.stringify(task.goal),
+              },
+            ],
           },
         ],
-        response_format: zodResponseFormat(
-          z.object({
-            result: z.any(),
-          }),
-          "agent_response"
-        ),
-        tools: tools.map((tool) => ({
-          type: "function",
-          function: tool,
-        })),
       });
 
-      return chat.choices[0].message.content;
+      const text = chat.text;
+      const toolCalls = chat.toolCalls;
+
+      console.log("toolCalls:", toolCalls);
+
+      if (toolCalls?.length) {
+        const toolCall = toolCalls[0];
+        const tool = tools.find(
+          (t) => t.name.replace(/[^a-zA-Z0-9_-]/g, "_") === toolCall.toolName
+        );
+        if (tool) {
+          const parsedArgs = JSON.parse(toolCall.args);
+          console.log("parsed_args:", parsedArgs);
+          return tool.execute(parsedArgs);
+        }
+      }
+
+      console.log("text:", text);
+      return text;
     };
 
-    const obj: Agent = {
-      name: agent.name,
-      description: agent.description,
-      tools: agent.tools,
-      options,
-      model: agent.model,
-      execute: agent.execute ?? defaultExecute,
-    };
-    agentify._agents.set(agent.name, obj);
+    console.log("primitive, agent.do:", agent.do);
+    console.log("primitive, doTask:", doTask);
+    console.log("primitive, agentify.agents:", agent.do ?? doTask);
+
+    if (!agent.do) {
+      agent.do = doTask;
+    }
+    agent.options = options;
+    agentify._agents.set(agent.name, agent);
   };
 
   const list = (): Agent[] => {
