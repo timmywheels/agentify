@@ -27,10 +27,6 @@ async function main() {
     lastName: z.string().optional(),
   });
 
-  const firstNameSchema = z.object({
-    firstName: z.string(),
-  });
-
   const lastNameSchema = z.object({
     lastName: z.string(),
   });

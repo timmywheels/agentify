@@ -32,7 +32,7 @@ export default function Agentify(options = {}) {
 
   instance.decorate = decorate;
 
-  // initialize coresystems
+  // initialize core systems
   buildPluginSystem(instance);
   buildHookSystem(instance);
 
