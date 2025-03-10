@@ -1,18 +1,186 @@
-# Agentify - A lightweight, extensible TypeScript framework for building AI agents and agentic worflows, inspired by Fastify
+# Agentify - A lightweight, extensible TypeScript framework for building AI agents and agentic workflows, inspired by Fastify
+
+Agentify provides a declarative, composable API for building complex agent-based AI systems with minimal boilerplate. It's designed for developers who want to create powerful AI workflows while maintaining type safety and a clean architecture.
 
 ## Core
 
 ### Agentify
+The main framework entrypoint that creates your application instance. It provides methods for registering plugins, defining tools, agents, tasks, and workflows.
+
+```typescript
+import { Agentify } from 'agentify';
+
+const app = Agentify({
+  logger: true,
+  // other options
+});
+```
+
+Key methods:
+- `register()`: Add plugins to extend functionality
+- `decorate()`: Add custom properties to the instance
+- `tool()`: Register a new tool
+- `agent()`: Register a new agent
+- `task()`: Define a unit of work
+- `workflow()`: Create orchestrated processes
+- `run()`: Execute tasks with the orchestrator
+- `ready()`: Signal application readiness
+- `close()`: Shutdown the application
 
 ### Plugins
+Agentify uses a powerful plugin system for extending functionality in a modular way. Plugins can add new capabilities, integrations, or modify existing behavior.
+
+```typescript
+// Define a plugin
+export default function myPlugin(app, options = {}) {
+  // Add functionality
+  app.decorate('myFeature', () => {
+    // Implementation
+  });
+}
+
+// Register a plugin
+app.register(myPlugin, { 
+  // options
+  someOption: 'value',
+  // dependencies
+  dependencies: ['anotherPlugin']
+});
+```
 
 ### Hooks
+The hooks system provides lifecycle events that plugins can tap into:
 
-### Providers
+- `onReady`: Triggered when the application is ready to start
+- `onClose`: Triggered during shutdown
 
+```typescript
+app.addHook('onReady', async () => {
+  console.log('App is ready to go!');
+});
 
-## Plugins
+app.addHook('onClose', async () => {
+  console.log('Cleaning up resources...');
+});
+```
+
+## Primitives
+
+### Agents
+Autonomous entities that use tools and reasoning to achieve goals. They make decisions, follow plans, and adapt to feedback.
+
+```typescript
+app.agent('researchAgent', {
+  capabilities: ['search', 'analyze'],
+  execute: async (request, reply) => {
+    // Implementation using tools
+    const results = await request.tools.search({
+      query: request.body.topic
+    });
+    
+    reply.send({ results });
+  }
+});
+```
+
+### Tools
+Self-contained functions that perform specific, atomic operations without decision-making logic.
+
+```typescript
+app.tool('webSearch', {
+  description: 'Search the web for information',
+  use: async (input) => {
+    // Implementation
+    return searchResults;
+  }
+});
+```
 
 ### Tasks
-### Agents
-### Tools
+Well-defined units of work with explicit inputs and outputs, serving as building blocks for larger workflows.
+
+```typescript
+app.task('fetchData', {
+  handler: async (input, context) => {
+    const data = await fetchFromApi(input.url);
+    return { data };
+  }
+});
+```
+
+### Workflows
+Define the sequence, branching, and data flow between tasks and agents to achieve complex goals.
+
+```typescript
+app.workflow('researchWorkflow')
+  .task('search', {
+    taskName: 'fetchData',
+    inputMap: { url: 'searchUrl' }
+  })
+  .task('analyze', {
+    taskName: 'analyzeData',
+    inputMap: { data: 'steps.search.data' }
+  })
+  .sequence(['search', 'analyze']);
+```
+
+### Orchestrator
+Analyzes tasks, selects appropriate agents, and manages the execution flow.
+
+```typescript
+// Declarative task definition
+const researchTask = {
+  name: 'researchTopic',
+  description: 'Research a topic thoroughly',
+  goal: 'Gather comprehensive information on a topic',
+  requiredCapabilities: ['research', 'analyze'],
+  input: { topic: 'string' }
+};
+
+// Let the orchestrator handle execution
+const result = await app.run(researchTask, { 
+  topic: 'Quantum Computing' 
+});
+```
+
+## Providers
+### LLM Providers
+Integrate with various LLM providers through plugins:
+
+```typescript
+// Register an OpenAI plugin
+app.register(require('agentify-openai'), {
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Register an Anthropic plugin
+app.register(require('agentify-anthropic'), {
+  apiKey: process.env.ANTHROPIC_API_KEY
+});
+```
+
+### Vector Stores
+Connect to vector databases for semantic search and retrieval:
+
+```typescript
+// Register a vector store plugin
+app.register(require('agentify-pinecone'), {
+  apiKey: process.env.PINECONE_API_KEY,
+  environment: 'production'
+});
+```
+
+## LLM Integration
+LLMs can be integrated at multiple levels:
+
+1. As Tools: For text generation, summarization, etc.
+2. Powering Agents: For reasoning and decision-making
+3. In the Orchestrator: For task decomposition and evaluation
+
+## Usage Examples
+See the examples directory for detailed examples:
+
+- Simple Workflows: Basic task sequencing
+- Conditional Workflows: Branching based on results
+- Agentic Workflows: Integration of agents and tools
+- Declarative Tasks: Using the orchestrator

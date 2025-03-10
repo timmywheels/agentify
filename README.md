@@ -284,7 +284,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the ISC License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Plugin System
 
@@ -373,7 +373,12 @@ agentify.addHook("onClose", async () => {
 
 ## Examples
 
-Check out the `examples` directory for more examples of how to use Agentify and its plugin system.
+Check out the `examples` directory for more examples of how to use Agentify and its plugin system:
+
+- **Simple Workflows**: Basic task sequencing and data passing
+- **Conditional Workflows**: Branching based on results
+- **Agentic Workflows**: Complex integration of agents and tools
+- **Declarative Tasks**: Using the orchestrator for automatic execution
 
 ## License
 
