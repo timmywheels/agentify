@@ -24,22 +24,39 @@ async function main() {
     });
   };
 
-  const myTool: Tool = {
-    name: "myTool",
-    description: "My Tool Description",
+  const fetchUsersTool: Tool = {
+    name: "Fetch Users",
+    description: "Fetch users from the database",
     schema: z.object({
-      name: z.string(),
+      firstName: z.string(),
     }),
-    execute: async (input: string) => {
-      return "Hello, world!";
+    execute: async (input: z.infer<typeof fetchUsersTool.schema>) => {
+      const fetchUsers = async () => {
+        setTimeout(() => {
+          const allUsers = [
+            { id: 1, firstName: "John", lastName: "Doe" },
+            { id: 2, firstName: "Jane", lastName: "Doe" },
+          ];
+
+          const filteredUsers = allUsers.filter((user) =>
+            user.firstName.includes(input.firstName)
+          );
+
+          return Promise.resolve(filteredUsers);
+        }, 3000);
+      };
+
+      return fetchUsers();
     },
   };
 
   const agent: Agent = {
     name: "My Greeting Agent",
     description: "My Greeting Agent Description",
-    tools: [myTool],
-    options: {},
+    tools: [fetchUsersTool],
+    options: {
+      model: "gpt-4o-mini",
+    },
   };
 
   agentify.register(agentPlugin);
