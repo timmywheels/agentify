@@ -1,186 +1,146 @@
-# Agentify - A lightweight, extensible TypeScript framework for building AI agents and agentic workflows, inspired by Fastify
+# Agentify - A lightweight TypeScript framework for building AI agents with tools
 
-Agentify provides a declarative, composable API for building complex agent-based AI systems with minimal boilerplate. It's designed for developers who want to create powerful AI workflows while maintaining type safety and a clean architecture.
+Agentify provides a simple, extensible framework for creating AI agents powered by language models. It follows a plugin-based architecture inspired by Fastify, allowing developers to build and compose agents with specialized tools.
 
 ## Core
 
 ### Agentify
-The main framework entrypoint that creates your application instance. It provides methods for registering plugins, defining tools, agents, tasks, and workflows.
+The main framework that creates your application instance. It provides methods for registering plugins and decorating the instance with additional functionality.
 
 ```typescript
-import { Agentify } from 'agentify';
+import Agentify from "./core/agentify";
 
-const app = Agentify({
-  logger: true,
-  // other options
-});
+const app = Agentify();
 ```
 
 Key methods:
 - `register()`: Add plugins to extend functionality
 - `decorate()`: Add custom properties to the instance
-- `tool()`: Register a new tool
-- `agent()`: Register a new agent
-- `task()`: Define a unit of work
-- `workflow()`: Create orchestrated processes
-- `run()`: Execute tasks with the orchestrator
+- `addHook()`: Register lifecycle event handlers
+- `executeHook()`: Trigger lifecycle events
 - `ready()`: Signal application readiness
-- `close()`: Shutdown the application
+- `start()`: Start the application
 
 ### Plugins
-Agentify uses a powerful plugin system for extending functionality in a modular way. Plugins can add new capabilities, integrations, or modify existing behavior.
+The plugin system is the primary way to extend Agentify's functionality:
 
 ```typescript
-// Define a plugin
-export default function myPlugin(app, options = {}) {
-  // Add functionality
-  app.decorate('myFeature', () => {
-    // Implementation
-  });
-}
+// Register core plugins
+app.register(agentPlugin);
+app.register(toolPlugin);
 
-// Register a plugin
-app.register(myPlugin, { 
-  // options
-  someOption: 'value',
-  // dependencies
-  dependencies: ['anotherPlugin']
+// Register provider plugins
+app.register(openaiPlugin, {
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+app.register(anthropicPlugin, {
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 ```
 
 ### Hooks
-The hooks system provides lifecycle events that plugins can tap into:
-
-- `onReady`: Triggered when the application is ready to start
-- `onClose`: Triggered during shutdown
+Lifecycle hooks for application events:
 
 ```typescript
 app.addHook('onReady', async () => {
-  console.log('App is ready to go!');
+  console.log('App is ready!');
 });
 
 app.addHook('onClose', async () => {
-  console.log('Cleaning up resources...');
+  console.log('Shutting down...');
 });
 ```
 
-## Primitives
-
-### Agents
-Autonomous entities that use tools and reasoning to achieve goals. They make decisions, follow plans, and adapt to feedback.
-
-```typescript
-app.agent('researchAgent', {
-  capabilities: ['search', 'analyze'],
-  execute: async (request, reply) => {
-    // Implementation using tools
-    const results = await request.tools.search({
-      query: request.body.topic
-    });
-    
-    reply.send({ results });
-  }
-});
-```
+## Main Components
 
 ### Tools
-Self-contained functions that perform specific, atomic operations without decision-making logic.
+Tools are atomic functions that agents can use to perform specific tasks. They have a name, description, parameters schema (using Zod), and an execute function.
 
 ```typescript
-app.tool('webSearch', {
-  description: 'Search the web for information',
-  use: async (input) => {
+// Create a tool with Zod schema validation
+const fetchUsersTool = app.tools.create({
+  name: "fetch_users",
+  description: "Fetch users from the database by name",
+  parameters: z.object({
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+  }),
+  execute: async (args) => {
     // Implementation
-    return searchResults;
-  }
+    return users;
+  },
 });
 ```
 
-### Tasks
-Well-defined units of work with explicit inputs and outputs, serving as building blocks for larger workflows.
+Available tool methods:
+- `tools.create()`: Register a new tool
+- `tools.list()`: List all registered tools
+- `tools.get()`: Get a specific tool by name
+- `tools.print()`: Print all registered tools
+
+### Agents
+Agents are the main actors that can use tools to perform complex tasks. They can be powered by different LLM providers.
 
 ```typescript
-app.task('fetchData', {
-  handler: async (input, context) => {
-    const data = await fetchFromApi(input.url);
-    return { data };
-  }
+// Create an agent with tools
+const agent = app.agents.create({
+  name: "Greeting Specialist",
+  description: "Greet users with personalized messages",
+  tools: [fetchUsersTool, greetTool],
+  options: {
+    model: "gpt-4o-mini", // Specify which model to use
+  },
 });
+
+// Use the agent
+const result = await agent.do("Greet John Smith");
 ```
 
-### Workflows
-Define the sequence, branching, and data flow between tasks and agents to achieve complex goals.
+Available agent methods:
+- `agents.create()`: Register a new agent
+- `agents.list()`: List all registered agents
+- `agents.get()`: Get a specific agent by name
+- `agents.print()`: Print all registered agents
 
+## LLM Providers
+Agentify supports multiple LLM providers through plugins:
+
+### OpenAI
 ```typescript
-app.workflow('researchWorkflow')
-  .task('search', {
-    taskName: 'fetchData',
-    inputMap: { url: 'searchUrl' }
-  })
-  .task('analyze', {
-    taskName: 'analyzeData',
-    inputMap: { data: 'steps.search.data' }
-  })
-  .sequence(['search', 'analyze']);
+app.register(openaiPlugin, {
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Access the OpenAI client
+const response = await app.openai.chat.completions.create({
+  model: "gpt-3.5-turbo",
+  messages: [{ role: "user", content: "Hello!" }],
+});
 ```
 
-### Orchestrator
-Analyzes tasks, selects appropriate agents, and manages the execution flow.
-
+### Anthropic
 ```typescript
-// Declarative task definition
-const researchTask = {
-  name: 'researchTopic',
-  description: 'Research a topic thoroughly',
-  goal: 'Gather comprehensive information on a topic',
-  requiredCapabilities: ['research', 'analyze'],
-  input: { topic: 'string' }
-};
+app.register(anthropicPlugin, {
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
-// Let the orchestrator handle execution
-const result = await app.run(researchTask, { 
-  topic: 'Quantum Computing' 
+// Access the Anthropic client
+const response = await app.anthropic.messages.create({
+  model: "claude-3-sonnet-20240229",
+  messages: [{ role: "user", content: "Hello!" }],
 });
 ```
 
-## Providers
-### LLM Providers
-Integrate with various LLM providers through plugins:
+## Development Status
+Agentify is in early development. Current features:
+- Plugin system with hooks
+- Tool creation with Zod schema validation
+- Agent creation with LLM-powered tool execution
+- OpenAI and Anthropic provider integrations
 
-```typescript
-// Register an OpenAI plugin
-app.register(require('agentify-openai'), {
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-// Register an Anthropic plugin
-app.register(require('agentify-anthropic'), {
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
-```
-
-### Vector Stores
-Connect to vector databases for semantic search and retrieval:
-
-```typescript
-// Register a vector store plugin
-app.register(require('agentify-pinecone'), {
-  apiKey: process.env.PINECONE_API_KEY,
-  environment: 'production'
-});
-```
-
-## LLM Integration
-LLMs can be integrated at multiple levels:
-
-1. As Tools: For text generation, summarization, etc.
-2. Powering Agents: For reasoning and decision-making
-3. In the Orchestrator: For task decomposition and evaluation
-
-## Usage Examples
-See the examples directory for detailed examples:
-
-- Simple Workflows: Basic task sequencing
-- Conditional Workflows: Branching based on results
-- Agentic Workflows: Integration of agents and tools
-- Declarative Tasks: Using the orchestrator
+Future features:
+- Task and workflow orchestration
+- Memory and state management
+- More provider integrations
+- Evaluation frameworks
