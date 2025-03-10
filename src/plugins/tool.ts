@@ -4,6 +4,7 @@ import { z } from "zod";
 export type ToolOptions = {
   type: "function";
   strict?: boolean;
+  register?: boolean;
 };
 
 export interface Tool {
@@ -27,7 +28,7 @@ declare module "../core/agentify" {
   interface AgentifyInstance {
     _tools: Map<Tool["name"], Tool>;
     tools: {
-      create: (tool: Tool, options: ToolOptions) => void;
+      create: (tool: Tool, options: ToolOptions) => Tool;
       list: () => Tool[];
       get: (name: string) => Tool | undefined;
       print: () => void;
@@ -38,19 +39,14 @@ declare module "../core/agentify" {
 export default function (agentify: AgentifyInstance) {
   agentify.decorate("_tools", new Map());
 
-  const create = (tool: Tool, options: ToolOptions) => {
+  const create = (tool: Tool, opts: ToolOptions): Tool => {
     if (agentify._tools.has(tool.name)) {
       throw new Error(`Tool ${tool.name} already exists`);
     }
 
-    const obj: Tool = {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-      execute: tool.execute,
-      options,
-    };
-    agentify._tools.set(tool.name, obj);
+    tool.options = opts;
+    agentify._tools.set(tool.name, tool);
+    return tool;
   };
 
   const list = (): Tool[] => {

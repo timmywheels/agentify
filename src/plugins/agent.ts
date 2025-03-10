@@ -1,10 +1,7 @@
-import z from "zod";
 import { AgentifyInstance } from "../core/agentify";
 import { Tool } from "./tool";
-import { zodResponseFormat } from "openai/helpers/zod";
-import { Task } from "./task";
 import { openai } from "@ai-sdk/openai";
-import { LanguageModelV1 } from "ai";
+import { generateText, LanguageModelV1 } from "ai";
 import zodToJsonSchema from "zod-to-json-schema";
 import { jsonSchemaToZod } from "json-schema-to-zod";
 import { JSONSchema7 } from "json-schema";
@@ -29,14 +26,14 @@ export interface Agent {
   tools?: Tool[];
   options?: AgentOptions;
   model?: LanguageModelV1;
-  do?: (task: Task, context?: AgentContext) => Promise<any>;
+  do?: (instructions: string, context?: AgentContext) => Promise<any>;
 }
 
 declare module "../core/agentify" {
   interface AgentifyInstance {
     _agents: Map<Agent["name"], Agent>;
     agents: {
-      create: (agent: Agent, options: AgentOptions) => void;
+      create: (agent: Agent, options: AgentOptions) => Agent;
       list: () => Agent[];
       get: (name: string) => Agent | undefined;
       print: () => void;
@@ -52,9 +49,15 @@ export default function (agentify: AgentifyInstance) {
       throw new Error(`Agent ${agent.name} already exists`);
     }
 
-    console.log("agent___:", agent);
+    const buildToolMap = (tools: Tool[]) => {
+      const toolMap: Record<string, Tool> = {};
+      tools.forEach((tool) => {
+        toolMap[tool.name] = tool;
+      });
+      return toolMap;
+    };
 
-    const doTask = async (task: Task, context: AgentContext = {}) => {
+    const doTask = async (instructions: string, context: AgentContext = {}) => {
       const _agent = agentify.agents.get(agent.name);
 
       if (!_agent) {
@@ -62,68 +65,67 @@ export default function (agentify: AgentifyInstance) {
       }
 
       const tools = _agent.tools ?? [];
-
       const model = _agent.model ?? openai("gpt-4o-mini");
 
-      const chat = await model.doGenerate({
-        inputFormat: "prompt",
-        mode: {
-          type: "regular",
-          tools: tools.map((tool) => {
-            return {
-              type: "function",
-              name: tool.name,
-              description: tool.description,
-              parameters: zodToJsonSchema(tool.parameters) as JSONSchema7,
-            };
-          }),
-        },
-        prompt: [
+      const data = await generateText({
+        model,
+        messages: [
+          {
+            role: "system",
+            content: `You are a(n): ${agent.name}. Your goal is: ${
+              agent.description
+            }. ${
+              tools.length
+                ? `You have access to the following tools: ${tools
+                    .map((tool) => `${tool.name}: ${tool.description}`)
+                    .join(", ")}.`
+                : ""
+            }`,
+          },
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text:
-                  typeof task.goal === "string"
-                    ? task.goal
-                    : JSON.stringify(task.goal),
-              },
-            ],
+            content: instructions,
           },
         ],
+        maxSteps: 10,
+        tools: buildToolMap(tools),
       });
 
-      const text = chat.text;
-      const toolCalls = chat.toolCalls;
-
-      console.log("toolCalls:", toolCalls);
-
-      if (toolCalls?.length) {
-        const toolCall = toolCalls[0];
-        const tool = tools.find(
-          (t) => t.name.replace(/[^a-zA-Z0-9_-]/g, "_") === toolCall.toolName
-        );
+      const toolResponses = data?.toolCalls?.map(async (toolCall) => {
+        const tool = tools.find((t) => t.name === toolCall.toolName);
         if (tool) {
           const parsedArgs = JSON.parse(toolCall.args);
           console.log("parsed_args:", parsedArgs);
-          return tool.execute(parsedArgs);
+          const response = await tool.execute(parsedArgs);
+          console.log("tool_response:", response);
+          return response;
         }
+      });
+
+      const steps = data.steps?.map((step: any, index: number) => {
+        console.log(`Step ${index}:`, step.stepType);
+        for (const msg of step.response.messages) {
+          console.log(`Message ${msg.role}:`, msg.content);
+        }
+        return step;
+      });
+
+      //   console.log(steps);
+
+      if (toolResponses?.length) {
+        return toolResponses;
       }
 
-      console.log("text:", text);
-      return text;
+      //   console.log("text:", text);
+      return data.text;
     };
-
-    console.log("primitive, agent.do:", agent.do);
-    console.log("primitive, doTask:", doTask);
-    console.log("primitive, agentify.agents:", agent.do ?? doTask);
 
     if (!agent.do) {
       agent.do = doTask;
     }
     agent.options = options;
     agentify._agents.set(agent.name, agent);
+    return agent;
   };
 
   const list = (): Agent[] => {
